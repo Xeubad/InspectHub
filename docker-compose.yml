@@ -20,7 +20,7 @@ services:
       - "3307:3306"
     volumes:
       # 数据库数据持久化卷
-      - D:/Program IT/docker_data/inspection_platform_data:/var/lib/mysql
+      - {物理路径}:/var/lib/mysql
 
   server:
     build: ./server
@@ -34,12 +34,12 @@ services:
       DB_PORT: 3306
       
       # JWT 签名密钥（生产环境强烈建议修改为随机字符串）
-      JWT_SECRET: zxcvbnm
+      JWT_SECRET: {xxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
     depends_on:
       - db
     volumes:
       # 巡检图片上传目录
-      - D:/Program IT/docker_data/inspection_platform_img:/app/uploads
+      - {物理路径}:/app/uploads
 
   client:
     build: ./client
