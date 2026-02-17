@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: registry.cn-wulanchabu.aliyuncs.com/xpled/mysql:8.0
+    container_name: inspecthub-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: inspecthub_db
+
+      # MySQL root 用户的密码
+      MYSQL_ROOT_PASSWORD: 123456
+      
+      # 数据库用户名
+      MYSQL_USER: admin
+      
+      # 数据库用户密码
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3307:3306"
+    volumes:
+      # 数据库数据持久化卷
+      - D:/Program IT/docker_data/inspection_platform_data:/var/lib/mysql
+
+  server:
+    build: ./server
+    container_name: inspecthub-server
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_NAME: inspecthub_db
+      DB_USER: root
+      DB_PASS: 123456
+      DB_PORT: 3306
+      
+      # JWT 签名密钥（生产环境强烈建议修改为随机字符串）
+      JWT_SECRET: zxcvbnm
+    depends_on:
+      - db
+    volumes:
+      # 巡检图片上传目录
+      - D:/Program IT/docker_data/inspection_platform_img:/app/uploads
+
+  client:
+    build: ./client
+    container_name: inspecthub-client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  db_data:
