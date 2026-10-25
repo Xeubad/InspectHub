@@ -1,26 +1,20 @@
-version: '3.8'
-
 services:
   db:
-    image: registry.cn-wulanchabu.aliyuncs.com/xpled/mysql:8.0
+    image: mysql:8.0
     container_name: inspecthub-db
     restart: always
     environment:
       MYSQL_DATABASE: inspecthub_db
-
-      # MySQL root 用户的密码
-      MYSQL_ROOT_PASSWORD: 123456
-      
-      # 数据库用户名
-      MYSQL_USER: admin
-      
-      # 数据库用户密码
-      MYSQL_PASSWORD: 123456
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
-      # 数据库数据持久化卷
-      - {物理路径}:/var/lib/mysql
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   server:
     build: ./server
@@ -30,16 +24,16 @@ services:
       DB_HOST: db
       DB_NAME: inspecthub_db
       DB_USER: root
-      DB_PASS: 123456
+      DB_PASS: ${DB_PASSWORD}
       DB_PORT: 3306
-      
-      # JWT 签名密钥（生产环境强烈建议修改为随机字符串）
-      JWT_SECRET: {xxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      # 巡检图片上传目录
-      - {物理路径}:/app/uploads
+      - upload_data:/app/uploads
 
   client:
     build: ./client
@@ -52,3 +46,4 @@ services:
 
 volumes:
   db_data:
+  upload_data:
