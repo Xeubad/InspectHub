@@ -6,12 +6,21 @@ const generateToken = (user) => {
   return jwt.sign({ id: user.id, role: user.role }, jwtSecret, { expiresIn: jwtExpiresIn });
 };
 
+// 角色只能由管理员在后台管理，注册一律创建 engineer
 exports.register = async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ message: '用户名和密码不能为空' });
+    }
+
+    if (typeof username !== 'string' || username.length < 2 || username.length > 50) {
+      return res.status(400).json({ message: '用户名长度需在 2-50 个字符之间' });
+    }
+
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ message: '密码长度不能少于 6 位' });
     }
 
     const existingUser = await User.findOne({ where: { username } });
@@ -22,7 +31,7 @@ exports.register = async (req, res) => {
     const user = await User.create({
       username,
       password,
-      role: role || 'engineer'
+      role: 'engineer'
     });
 
     const token = generateToken(user);

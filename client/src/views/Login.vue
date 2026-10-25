@@ -28,13 +28,6 @@
           />
         </el-form-item>
 
-        <el-form-item v-if="isRegister" prop="role">
-          <el-select v-model="form.role" placeholder="选择角色" size="large" style="width: 100%">
-            <el-option label="工程师" value="engineer" />
-            <el-option label="管理员" value="admin" />
-          </el-select>
-        </el-form-item>
-
         <el-form-item>
           <el-button
             type="primary"
@@ -72,8 +65,7 @@ const isRegister = ref(false)
 
 const form = reactive({
   username: '',
-  password: '',
-  role: 'engineer'
+  password: ''
 })
 
 const rules = {

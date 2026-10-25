@@ -312,7 +312,9 @@ const rules = {
 
 const getImageUrl = (path) => {
   if (!path) return ''
-  return `/api/${path}`
+  // 上传目录已加鉴权，<img> 无法携带请求头，通过 query 传递 token
+  const token = localStorage.getItem('token')
+  return `/api/${path}?token=${encodeURIComponent(token || '')}`
 }
 
 // 预览图片

@@ -4,8 +4,10 @@ const { User } = require('../models');
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+    // 优先取 Authorization 头；<img> 标签无法携带请求头，允许 ?token= 查询参数兜底
+    const headerToken = req.header('Authorization')?.replace('Bearer ', '');
+    const token = headerToken || req.query.token;
+
     if (!token) {
       return res.status(401).json({ message: '请先登录' });
     }
