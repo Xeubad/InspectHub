@@ -136,21 +136,10 @@ npm install
 
 #### 3. 配置数据库
 
-创建 MySQL 数据库：
-```sql
-CREATE DATABASE inspecthub_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+后端通过环境变量读取数据库配置（见下方「环境变量」），默认连接 `localhost:3306` 的 `inspection_platform` 库。也可以创建数据库后按需覆盖：
 
-修改 `server/config/database.js` 配置：
-```javascript
-module.exports = {
-  host: 'localhost',
-  port: 3306,
-  database: 'inspecthub_db',
-  username: 'root',
-  password: 'your_password',
-  dialect: 'mysql'
-};
+```bash
+export DB_NAME=inspecthub_db DB_USER=root DB_PASS=your_password
 ```
 
 #### 4. 启动服务
@@ -172,20 +161,25 @@ npm run dev
 #### 5. 访问应用
 打开浏览器访问 `http://localhost:5173`
 
-**默认管理员账号：**
-- 用户名: `admin`
-- 密码: `admin123`
+**初始管理员账号：**
+
+首次启动时如果系统中没有任何管理员，会自动创建初始管理员（用户名默认 `admin`）：
+- 设置了 `ADMIN_PASSWORD` 环境变量时使用该密码
+- 未设置时生成随机密码并打印在服务日志里，请立即登录修改
+
+> 注册页面只能创建「工程师」账号，管理员账号只能通过初始 seed 或备份恢复产生。
 
 ### 方式二：Docker 部署
 
-#### 1. 修改 docker-compose.yml
+#### 1. 配置环境变量
 
-根据需要修改以下配置：
-- 数据库密码
-- JWT 密钥
-- 数据卷路径
+```bash
+cp .env.example .env
+# 编辑 .env，必须设置 DB_PASSWORD 和 JWT_SECRET（用强随机字符串）
+```
 
 #### 2. 启动容器
+
 ```bash
 docker-compose up -d
 ```
@@ -219,8 +213,12 @@ DB_USER=root
 DB_PASS=your_password
 DB_PORT=3306
 
-# JWT 配置
+# JWT 配置（生产环境必须设置强随机密钥，未设置时启动会打印警告）
 JWT_SECRET=your_jwt_secret_key
+
+# 初始管理员（仅当系统中无任何管理员时创建）
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=            # 留空则生成随机密码并打印在日志
 
 # 服务器端口
 PORT=3000
@@ -277,9 +275,9 @@ VITE_API_BASE_URL=http://localhost:3000/api
 ### 上传接口
 - `POST /api/upload` - 上传图片
 
-### 备份接口
-- `POST /api/backup/create` - 创建备份
-- `POST /api/backup/restore` - 恢复备份
+### 备份接口（仅管理员）
+- `GET /api/backup/export` - 导出备份（含数据库 JSON 和图片，密码 hash 一并导出）
+- `POST /api/backup/import` - 恢复备份
 
 ## 核心功能说明
 
@@ -300,7 +298,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 - 支持粘贴、拖拽、选择文件
 - 自动转换为高质量 JPEG
 - 支持多图上传（JSON 数组格式）
-- 导出时按 16:9 比例缩放
+- 导出时按原图比例缩放，固定宽度 280px
 
 ### 4. Word 导出
 - 格式化表格布局
