@@ -1,6 +1,6 @@
 import api from './index'
 
-export const getInspections = () => api.get('/inspections')
+export const getInspections = (params) => api.get('/inspections', { params })
 
 export const getInspection = (id) => api.get(`/inspections/${id}`)
 

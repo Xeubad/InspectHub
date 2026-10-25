@@ -2,6 +2,7 @@ const { Template, TemplateItem, Inspection, InspectionItem, User, sequelize } = 
 const archiver = require('archiver');
 const unzipper = require('unzipper');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const { uploadDir } = require('../config');
@@ -35,7 +36,8 @@ exports.exportBackup = async (req, res) => {
     archive.pipe(res);
 
     // 1. 导出数据库数据
-    const users = await User.findAll({ attributes: { exclude: ['password'] } });
+    // 注意：包含密码 hash（bcrypt），用于完整恢复；请妥善保管备份包
+    const users = await User.findAll();
     const templates = await Template.findAll({ include: [{ model: TemplateItem, as: 'items' }] });
     const inspections = await Inspection.findAll({ include: [{ model: InspectionItem, as: 'items' }] });
 
@@ -115,15 +117,18 @@ exports.importBackup = [
 
       // 3. 开启事务导入数据
       await sequelize.transaction(async (t) => {
-        // A. 恢复用户
-        const userMap = {}; 
+        // A. 恢复用户（密码 hash 随备份恢复，恢复后可直接用原密码登录）
+        // hooks:false 跳过 beforeCreate 钩子，避免已 hash 的密码被二次 hash
+        const userMap = {};
         for (const u of dbData.users || []) {
           const [user] = await User.findOrCreate({
             where: { username: u.username },
-            defaults: { 
-              password: u.password || '$2a$10$X7.mQvJ8.z8pU8X8.z8pUe8z8pUe8z8pUe8z8pUe8z8pUe8z8pUe', 
-              role: u.role || 'user' 
+            defaults: {
+              // 备份包无密码 hash 时（旧版备份）回退为随机密码
+              password: u.password || bcrypt.hashSync(require('crypto').randomBytes(24).toString('base64url'), 10),
+              role: (u.role === 'admin' || u.role === 'engineer') ? u.role : 'engineer'
             },
+            hooks: false,
             transaction: t
           });
           userMap[u.id] = user.id;

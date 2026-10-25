@@ -1,4 +1,4 @@
-const { Template, TemplateItem, User } = require('../models');
+const { Template, TemplateItem, User, sequelize } = require('../models');
 
 exports.getTemplates = async (req, res) => {
   try {
@@ -51,7 +51,7 @@ exports.createTemplate = async (req, res) => {
     });
 
     if (items && items.length > 0) {
-const templateItems = items.map((item, index) => ({
+      const templateItems = items.map((item, index) => ({
         templateId: template.id,
         name: item.name,
         description: item.description,
@@ -85,26 +85,28 @@ exports.updateTemplate = async (req, res) => {
       return res.status(404).json({ message: '模板不存在' });
     }
 
-    await template.update({ name, description });
+    await sequelize.transaction(async (t) => {
+      await template.update({ name, description }, { transaction: t });
 
-    if (items) {
-      await TemplateItem.destroy({ where: { templateId: template.id } });
-      
-      if (items.length > 0) {
-const templateItems = items.map((item, index) => ({
-          templateId: template.id,
-          name: item.name,
-          description: item.description,
-          sortOrder: item.sortOrder !== undefined ? item.sortOrder : index,
-          level: item.level || 1,
-          code: item.code || null,
-          parentId: item.parentId || null,
-          isGroup: Boolean(item.isGroup),
-          isDynamic: Boolean(item.isDynamic)
-        }));
-        await TemplateItem.bulkCreate(templateItems);
+      if (items) {
+        await TemplateItem.destroy({ where: { templateId: template.id } }, { transaction: t });
+
+        if (items.length > 0) {
+          const templateItems = items.map((item, index) => ({
+            templateId: template.id,
+            name: item.name,
+            description: item.description,
+            sortOrder: item.sortOrder !== undefined ? item.sortOrder : index,
+            level: item.level || 1,
+            code: item.code || null,
+            parentId: item.parentId || null,
+            isGroup: Boolean(item.isGroup),
+            isDynamic: Boolean(item.isDynamic)
+          }));
+          await TemplateItem.bulkCreate(templateItems, { transaction: t });
+        }
       }
-    }
+    });
 
     const result = await Template.findByPk(template.id, {
       include: [{ model: TemplateItem, as: 'items' }]

@@ -66,6 +66,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next"
+        style="justify-content: flex-end; margin-top: 12px"
+        @current-change="fetchInspections"
+        @size-change="() => { page = 1; fetchInspections() }"
+      />
     </el-card>
   </div>
 </template>
@@ -81,13 +92,18 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const loading = ref(false)
 const inspections = ref([])
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 
 const formatDate = (date) => new Date(date).toLocaleString('zh-CN')
 
 const fetchInspections = async () => {
   loading.value = true
   try {
-    inspections.value = await getInspections()
+    const data = await getInspections({ page: page.value, pageSize: pageSize.value })
+    inspections.value = data.rows
+    total.value = data.total
   } finally {
     loading.value = false
   }
